@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 align="center">Your Whiskey Collection</h1>
+    <div>
+        <h3 align="center">What's On Your List?</h3>
+    </div>
+
+    <img src="../static/images/pexels-pixabay-301692.jpg" class="img-fluid" alt="">
+
+    <ul class="list-group list-group-flush" id="notes">
+      {% for note in user.notes %}
+      <li class="list-group-item">
+        {{ note.data }}
+        <button type="button" class="btn btn-danger btn-sm float-right ml-2" onClick="deleteNote({{ note.id }})">
+          Delete
+        </button>
+        <button type="button" class="btn btn-info btn-sm float-right" onClick="showUpdateForm({{ note.id }}, '{{ note.data | replace('\'', '\\\'') }}')">
+          Update
+        </button> 
+      </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Update Form -->
+    <div id="updateForm" class="form-group mt-3" style="display: none;">
+        <input type="hidden" id="updateNoteId" />
+        <textarea class="form-control" id="updateNoteContent" placeholder="New note content..."></textarea>
+        <button type="button" class="btn btn-success mt-2" id="updateNoteBtn">Update List</button>
+    </div>
+
+    <form method="POST">
+      <textarea name="note" id="note" class="form-control" placeholder="Enter note content..."></textarea>
+      <br />
+      <div align="center">
+        <button type="button" class="btn btn-primary" id="createNoteBtn">Add Note</button>
+      </div>
+    </form>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Function to get the JWT token from local storage
+        function getToken() {
+            return localStorage.getItem('jwt'); // Adjust this according to where you store your token
+        }
+
+        // Create Note
+        $('#createNoteBtn').click(function() {
+            const content = $('#note').val().trim();
+            if (content === '') {
+                alert('Note content cannot be empty.');
+                return;
+            }
+
+            $.ajax({
+                url: '/create-note',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + getToken()  // Include the token in the header
+                },
+                data: JSON.stringify({ content: content }),
+                success: function(response) {
+                    location.reload();
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Error creating note:', textStatus, errorThrown);
+                    alert('Error creating note. Please try again.');
+                }
+            });
+        });
+
+        // Show Update Form
+        window.showUpdateForm = function(noteId, currentContent) {
+            $('#updateNoteId').val(noteId);
+            $('#updateNoteContent').val(currentContent);
+            $('#updateForm').show(); // Ensure the form is visible
+        };
+
+        // Update Note
+        $('#updateNoteBtn').click(function() {
+            const noteId = $('#updateNoteId').val();
+            const newContent = $('#updateNoteContent').val().trim();
+
+            if (newContent === '') {
+                alert('Note content cannot be empty.');
+                return;
+            }
+
+            $.ajax({
+                url: '/update-note',
+                type: 'PUT',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + getToken()  // Include the token in the header
+                },
+                data: JSON.stringify({ noteId: noteId, content: newContent }),
+                success: function(response) {
+                    location.reload();
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Error updating note:', textStatus, errorThrown);
+                    alert('Error updating note. Please try again.');
+                }
+            });
+        });
+
+        // Delete Note
+        window.deleteNote = function(noteId) {
+            if (confirm('Are you sure you want to delete this note?')) {
+                $.ajax({
+                    url: '/delete-note',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()  // Include the token in the header
+                    },
+                    data: JSON.stringify({ noteId: noteId }),
+                    success: function() {
+                        location.reload();
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error deleting note:', textStatus, errorThrown);
+                        alert('Error deleting note. Please try again.');
+                    }
+                });
+            }
+        };
+    });
+</script>
+
+{% endblock %}
+
+
+
